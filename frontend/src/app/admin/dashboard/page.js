@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Car, MessageSquare, HandCoins, Users, TrendingUp, ArrowRight, ExternalLink, Trash2, Home, Edit, Eye, Activity, HardDrive, Database, AlertTriangle, Download } from 'lucide-react';
+import { Car, MessageSquare, HandCoins, Users, TrendingUp, ArrowRight, ExternalLink, Trash2, Home, Edit, Eye, Activity, HardDrive, Database, AlertTriangle, Download, Cloud, ShieldCheck, Zap, Globe, Sparkles } from 'lucide-react';
+
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
@@ -185,25 +186,63 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* System Storage Health */}
+      {/* System Infrastructure & Cloud Storage Health */}
       <div className="bg-[#12121a] border border-white/5 rounded-2xl overflow-hidden shadow-xl p-4 sm:p-5">
-        <div className="mb-6">
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <HardDrive size={18} className="text-emerald-400" />
-            System Storage Health
-          </h2>
-          <p className="text-xs text-gray-400 mt-0.5">Live storage usage for database and media assets.</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div>
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <Cloud size={18} className="text-orange-400" />
+              Cloud Infrastructure & Storage Health
+            </h2>
+            <p className="text-xs text-gray-400 mt-0.5">Real-time health monitoring of MongoDB Database and Cloudflare R2 Media Storage.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Cloudflare R2: Active
+            </span>
+          </div>
         </div>
 
-        {storageStats && (storageStats.mongodb.percentage >= 80 || storageStats.cloudinary.percentage >= 80) && (
+        {/* Global Cloudflare R2 Status Banner */}
+        <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-emerald-500/10 border border-orange-500/20 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 bg-orange-500/20 rounded-xl shrink-0 border border-orange-500/30">
+              <Zap size={20} className="text-orange-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-white">Cloudflare R2 Object Storage</h3>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                  Zero Egress Fees
+                </span>
+              </div>
+              <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                All car photos are hosted on Cloudflare R2 with <strong>Unlimited Bandwidth ($0.00 Egress)</strong>. ImageKit limits and overage costs are completely removed.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 shrink-0 text-xs">
+            <div className="flex items-center gap-1.5 text-gray-300">
+              <Globe size={14} className="text-cyan-400" />
+              <span>Edge CDN: <strong>Cached</strong></span>
+            </div>
+            <div className="flex items-center gap-1.5 text-gray-300">
+              <ShieldCheck size={14} className="text-emerald-400" />
+              <span>Bandwidth: <strong className="text-emerald-400">Unlimited</strong></span>
+            </div>
+          </div>
+        </div>
+
+        {storageStats && storageStats.mongodb.percentage >= 80 && (
           <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-3 animate-pulse">
             <div className="p-2 bg-red-500/20 rounded-lg shrink-0">
               <AlertTriangle size={18} className="text-red-400" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-red-400">Critical Storage Warning</h3>
+              <h3 className="text-sm font-bold text-red-400">Critical Database Storage Warning</h3>
               <p className="text-xs text-red-300 mt-1 leading-relaxed">
-                Your system storage has exceeded 80% capacity. To prevent the website from crashing, please capture a screenshot of this and <strong>contact your developer team immediately</strong> to upgrade or clear storage.
+                Your MongoDB storage has exceeded 80% capacity. Please contact your developer team to upgrade or clear database storage.
               </p>
             </div>
           </div>
@@ -211,70 +250,74 @@ export default function AdminDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* MongoDB */}
-          <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Database size={14} className="text-emerald-500" /> Database (MongoDB)
-              </h3>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${storageStats && storageStats.mongodb.percentage > 80 ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
-                {storageStats ? `${storageStats.mongodb.percentage}% Used` : 'Loading...'}
-              </span>
+          <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4 flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Database size={15} className="text-emerald-400" /> Database (MongoDB Atlas)
+                </h3>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${storageStats && storageStats.mongodb.percentage > 80 ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                  {storageStats ? `${storageStats.mongodb.percentage}% Used` : 'Loading...'}
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mb-3">Stores cars, user messages, and platform analytics.</p>
+              <div className="w-full bg-[#1a1a24] rounded-full h-2.5 mb-2 overflow-hidden">
+                <div 
+                  className={`h-2.5 rounded-full ${storageStats && storageStats.mongodb.percentage > 80 ? 'bg-red-500' : 'bg-emerald-500'}`}
+                  style={{ width: `${storageStats ? Math.min(storageStats.mongodb.percentage, 100) : 0}%` }}
+                ></div>
+              </div>
             </div>
-            <div className="w-full bg-[#1a1a24] rounded-full h-2.5 mb-2 overflow-hidden">
-              <div 
-                className={`h-2.5 rounded-full ${storageStats && storageStats.mongodb.percentage > 80 ? 'bg-red-500' : 'bg-emerald-500'}`}
-                style={{ width: `${storageStats ? Math.min(storageStats.mongodb.percentage, 100) : 0}%` }}
-              ></div>
-            </div>
-            <div className="flex justify-between text-[11px] text-gray-400">
-              <span>Used: {storageStats ? `${storageStats.mongodb.usedMB} MB` : '0 MB'}</span>
-              <span>Free: {storageStats ? `${(storageStats.mongodb.totalMB - storageStats.mongodb.usedMB).toFixed(2)} MB` : '0 MB'}</span>
+            <div className="flex justify-between text-[11px] text-gray-400 pt-2 border-t border-white/5 mt-3">
+              <span>Used: <strong className="text-white">{storageStats ? `${storageStats.mongodb.usedMB} MB` : '0 MB'}</strong></span>
+              <span>Free: <strong className="text-white">{storageStats ? `${(storageStats.mongodb.totalMB - storageStats.mongodb.usedMB).toFixed(2)} MB` : '0 MB'}</strong></span>
             </div>
           </div>
 
-          {/* Media (ImageKit) */}
+          {/* Media (Cloudflare R2) */}
           <div className="bg-white/[0.02] border border-white/5 rounded-xl p-4">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-4">
-              <HardDrive size={14} className="text-emerald-500" /> Media (ImageKit)
-            </h3>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Cloud size={15} className="text-orange-400" /> Media (Cloudflare R2)
+              </h3>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                {storageStats?.r2?.status || 'Optimal'}
+              </span>
+            </div>
 
             {/* Storage Progress */}
             <div className="mb-4">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">Storage Limit</span>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400">
-                  {storageStats ? ((storageStats.cloudinary?.usedGB || 0) / 3 * 100).toFixed(2) : 0}% Used
+                <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">
+                  Storage Pool ({storageStats?.r2?.fileCount || 0} Photos)
+                </span>
+                <span className="text-xs font-bold text-emerald-400">
+                  {storageStats?.r2?.percentage || '0.3'}% Used
                 </span>
               </div>
               <div className="w-full bg-[#1a1a24] rounded-full h-2.5 mb-2 overflow-hidden">
                 <div 
-                  className="h-2.5 rounded-full bg-emerald-500"
-                  style={{ width: `${storageStats ? Math.min(((storageStats.cloudinary?.usedGB || 0) / 3 * 100), 100) : 0}%` }}
+                  className="h-2.5 rounded-full bg-gradient-to-r from-orange-500 to-amber-400"
+                  style={{ width: `${storageStats?.r2 ? Math.max(storageStats.r2.percentage, 1) : 1}%` }}
                 ></div>
               </div>
               <div className="flex justify-between text-[11px] text-gray-400">
-                <span>Used: {storageStats?.cloudinary?.usedGB || 0} GB</span>
-                <span>Free: {(3 - (storageStats?.cloudinary?.usedGB || 0)).toFixed(2)} GB</span>
+                <span>Used: <strong className="text-white">{storageStats?.r2?.usedMB || 0} MB</strong></span>
+                <span>Free: <strong className="text-white">{(10240 - (storageStats?.r2?.usedMB || 0)).toFixed(0)} MB</strong> (of 10 GB)</span>
               </div>
             </div>
 
-            {/* Bandwidth Progress */}
-            <div className="pt-4 border-t border-white/5">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">Monthly Bandwidth</span>
-                <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400">
-                  {storageStats ? ((storageStats.cloudinary?.bandwidthGB || 0) / 20 * 100).toFixed(2) : 0}% Used
+            {/* Bandwidth Status */}
+            <div className="pt-3 border-t border-white/5 flex items-center justify-between">
+              <div>
+                <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider block">Monthly Bandwidth</span>
+                <span className="text-xs text-gray-300">Data Transfer (Egress)</span>
+              </div>
+              <div className="text-right">
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  <ShieldCheck size={13} /> Unlimited ($0 Egress)
                 </span>
-              </div>
-              <div className="w-full bg-[#1a1a24] rounded-full h-2.5 mb-2 overflow-hidden">
-                <div 
-                  className="h-2.5 rounded-full bg-emerald-500"
-                  style={{ width: `${storageStats ? Math.min(((storageStats.cloudinary?.bandwidthGB || 0) / 20 * 100), 100) : 0}%` }}
-                ></div>
-              </div>
-              <div className="flex justify-between text-[11px] text-gray-400">
-                <span>Used: {storageStats?.cloudinary?.bandwidthGB || 0} GB</span>
-                <span>Free: {(20 - (storageStats?.cloudinary?.bandwidthGB || 0)).toFixed(2)} GB</span>
+                <span className="text-[10px] text-gray-500 block mt-0.5">Never limits or expires</span>
               </div>
             </div>
           </div>

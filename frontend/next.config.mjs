@@ -38,6 +38,18 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: 'pub-a9d1044a70e94eda8754293b52dfe920.r2.dev',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.r2.dev',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.hariramcars.com',
+      },
+      {
+        protocol: 'https',
         hostname: 'ik.imagekit.io',
       },
       {
@@ -124,7 +136,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://www.youtube.com https://s.ytimg.com https://cdn.jsdelivr.net; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://ik.imagekit.io https://i.ibb.co https://img.youtube.com https://i.ytimg.com https://images.unsplash.com https://lh3.googleusercontent.com https://randomuser.me; media-src 'self' https://www.youtube.com https://youtube.com; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https://www.google.com https://maps.google.com https://www.youtube.com https://youtube.com; connect-src 'self' https://ik.imagekit.io https://api.imgbb.com https://i.ibb.co https://www.googletagmanager.com https://maps.googleapis.com ${apiDomain} https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://img.youtube.com https://www.youtube.com;`,
+            value: `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://www.youtube.com https://s.ytimg.com https://cdn.jsdelivr.net; worker-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.r2.dev https://pub-a9d1044a70e94eda8754293b52dfe920.r2.dev https://cdn.hariramcars.com https://media.hariramcars.com https://ik.imagekit.io https://i.ibb.co https://img.youtube.com https://i.ytimg.com https://images.unsplash.com https://plus.unsplash.com https://lh3.googleusercontent.com https://randomuser.me; media-src 'self' https://*.r2.dev https://pub-a9d1044a70e94eda8754293b52dfe920.r2.dev https://www.youtube.com https://youtube.com; font-src 'self' data: https://fonts.gstatic.com; frame-src 'self' https://www.google.com https://maps.google.com https://www.youtube.com https://youtube.com; connect-src 'self' https://*.r2.dev https://pub-a9d1044a70e94eda8754293b52dfe920.r2.dev https://cdn.hariramcars.com https://media.hariramcars.com https://ik.imagekit.io https://api.imgbb.com https://i.ibb.co https://www.googletagmanager.com https://maps.googleapis.com ${apiDomain} https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://img.youtube.com https://www.youtube.com;`,
           },
         ],
       },

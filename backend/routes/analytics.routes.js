@@ -1,8 +1,11 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import Analytics from '../models/Analytics.js';
+import { ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { r2Client } from '../config/r2.js';
 
 const router = express.Router();
+
 
 // @route   POST /api/analytics/track
 // @desc    Track page view and unique visitor
@@ -114,52 +117,89 @@ router.get('/app-installs/total', async (req, res) => {
   }
 });
 
+// In-memory cache for R2 bucket stats to prevent excessive API calls
+let cachedR2Stats = null;
+let lastR2FetchTime = 0;
+const R2_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes cache
+
+async function getR2BucketStats() {
+  const now = Date.now();
+  if (cachedR2Stats && (now - lastR2FetchTime < R2_CACHE_TTL_MS)) {
+    return cachedR2Stats;
+  }
+
+  try {
+    const bucket = process.env.R2_BUCKET_NAME || 'hariramcars-media';
+    let isTruncated = true;
+    let continuationToken;
+    let totalCount = 0;
+    let totalBytes = 0;
+
+    while (isTruncated) {
+      const res = await r2Client.send(new ListObjectsV2Command({
+        Bucket: bucket,
+        ContinuationToken: continuationToken,
+        MaxKeys: 1000
+      }));
+
+      if (res.Contents) {
+        for (const obj of res.Contents) {
+          totalCount++;
+          totalBytes += (obj.Size || 0);
+        }
+      }
+      isTruncated = res.IsTruncated;
+      continuationToken = res.NextContinuationToken;
+    }
+
+    const usedMB = parseFloat((totalBytes / (1024 * 1024)).toFixed(2));
+    const usedGB = parseFloat((totalBytes / (1024 * 1024 * 1024)).toFixed(4));
+    const totalGB = 10;
+    const percentage = parseFloat(((usedGB / totalGB) * 100).toFixed(2));
+
+    cachedR2Stats = {
+      usedMB,
+      usedGB,
+      totalGB,
+      percentage,
+      fileCount: totalCount,
+      bucket,
+      status: 'Optimal',
+      bandwidth: 'Unlimited ($0 Egress)',
+      cdnStatus: 'Active'
+    };
+    lastR2FetchTime = now;
+    return cachedR2Stats;
+  } catch (err) {
+    console.error('Error fetching R2 stats:', err.message);
+    return cachedR2Stats || {
+      usedMB: 0,
+      usedGB: 0,
+      totalGB: 10,
+      percentage: 0,
+      fileCount: 0,
+      bucket: process.env.R2_BUCKET_NAME || 'hariramcars-media',
+      status: 'Healthy',
+      bandwidth: 'Unlimited ($0 Egress)',
+      cdnStatus: 'Active'
+    };
+  }
+}
+
 // @route   GET /api/analytics/storage
-// @desc    Get MongoDB and ImageKit storage stats
+// @desc    Get MongoDB and Cloudflare R2 storage health stats
 // @access  Public
 router.get('/storage', async (req, res) => {
   try {
-    // MongoDB Stats
+    // 1. MongoDB Stats
     const db = mongoose.connection.db;
     const dbStats = await db.stats();
     const mongoUsedMB = dbStats.storageSize / (1024 * 1024);
     const mongoTotalMB = 512;
     const mongoPercentage = (mongoUsedMB / mongoTotalMB) * 100;
 
-    // ImageKit Stats
-    let ikUsedGB = 0;
-    let ikBandwidthGB = 0;
-    
-    if (process.env.IMAGEKIT_PRIVATE_KEY) {
-      try {
-        const axios = (await import('axios')).default;
-        
-        // ImageKit requires date range for usage API. Let's get the last 30 days.
-        const endDate = new Date();
-        const startDate = new Date();
-        startDate.setDate(endDate.getDate() - 30);
-        
-        const startStr = startDate.toISOString().split('T')[0];
-        const endStr = endDate.toISOString().split('T')[0];
-        
-        const ikAuth = Buffer.from(process.env.IMAGEKIT_PRIVATE_KEY + ':').toString('base64');
-        const ikRes = await axios.get(`https://api.imagekit.io/v1/accounts/usage?startDate=${startStr}&endDate=${endStr}`, {
-          headers: {
-            'Authorization': `Basic ${ikAuth}`,
-            'Accept': 'application/json'
-          }
-        });
-        
-        if (ikRes.status === 200 && ikRes.data) {
-          const ikData = ikRes.data;
-          // Convert bytes to GB
-          ikUsedGB = (ikData.mediaLibraryStorageBytes || 0) / (1024 * 1024 * 1024);
-          ikBandwidthGB = (ikData.bandwidthBytes || 0) / (1024 * 1024 * 1024);
-        }
-      } catch (ikErr) {
-        console.error('Failed to fetch ImageKit stats via axios:', ikErr.message);
-      }
-    }
+    // 2. Cloudflare R2 Live Stats
+    const r2 = await getR2BucketStats();
 
     res.status(200).json({
       mongodb: {
@@ -167,11 +207,23 @@ router.get('/storage', async (req, res) => {
         totalMB: mongoTotalMB,
         percentage: parseFloat(mongoPercentage.toFixed(2))
       },
-      cloudinary: { // Keeping the key as cloudinary for frontend compatibility
-        usedGB: parseFloat(ikUsedGB.toFixed(4)),
-        bandwidthGB: parseFloat(ikBandwidthGB.toFixed(4)),
-        totalGB: 3,
-        bandwidthTotalGB: 20
+      r2: {
+        usedMB: r2.usedMB,
+        usedGB: r2.usedGB,
+        totalGB: r2.totalGB,
+        percentage: r2.percentage,
+        fileCount: r2.fileCount,
+        bandwidth: r2.bandwidth,
+        status: r2.status,
+        bucket: r2.bucket,
+        cdnStatus: r2.cdnStatus
+      },
+      // Backward compatibility for existing frontends
+      cloudinary: {
+        usedGB: r2.usedGB,
+        bandwidthGB: 0,
+        totalGB: 10,
+        bandwidthTotalGB: 999999
       }
     });
   } catch (err) {

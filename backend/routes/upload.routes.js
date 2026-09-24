@@ -54,47 +54,32 @@ router.post('/heic-to-imgbb', protect, adminOnly, upload.single('image'), async 
 });
 
 import multer from 'multer';
-import sharp from 'sharp';
-import ImageKit from 'imagekit';
-
-// Initialize ImageKit
-const imagekit = new ImageKit({
-  publicKey: process.env.IMAGEKIT_PUBLIC_KEY || 'dummy_public_key',
-  privateKey: process.env.IMAGEKIT_PRIVATE_KEY || 'dummy_private_key',
-  urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT || 'https://ik.imagekit.io/dummy'
-});
+import { uploadToR2 } from '../config/r2.js';
 
 // Configure Multer for memory storage
 const storage = multer.memoryStorage();
 const uploadMem = multer({ storage });
 
-// New route for ImageKit with Sharp compression
-router.post('/imagekit', protect, adminOnly, uploadMem.single('image'), async (req, res) => {
+// Route for Cloudflare R2 upload with Sharp compression (also handles /imagekit for backwards compatibility)
+const handleR2Upload = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
 
-    // Forcefully resize and compress to WebP using sharp (~80KB target)
-    const webpBuffer = await sharp(req.file.buffer)
-      .resize({ width: 1280, withoutEnlargement: true })
-      .webp({ quality: 75 })
-      .toBuffer();
-
-    // Upload the compressed buffer directly to ImageKit
-    const response = await imagekit.upload({
-      file: webpBuffer,
-      fileName: `car-${Date.now()}.webp`,
-      folder: '/inventory'
-    });
+    const result = await uploadToR2(req.file.buffer, req.file.originalname, 'inventory');
 
     res.json({ 
       success: true, 
-      url: response.url, 
-      publicId: response.fileId 
+      url: result.secure_url, 
+      publicId: result.public_id 
     });
   } catch (error) {
-    console.error('ImageKit Upload Error:', error);
+    console.error('R2 Upload Error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
-});
+};
+
+router.post('/imagekit', protect, adminOnly, uploadMem.single('image'), handleR2Upload);
+router.post('/r2', protect, adminOnly, uploadMem.single('image'), handleR2Upload);
 
 export default router;
+

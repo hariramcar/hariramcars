@@ -1,8 +1,10 @@
 import express from 'express';
 import Car from '../models/Car.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
-import { upload, uploadToImageKit, deleteFromImageKit } from '../config/imagekit.js';
+import { upload, uploadToR2, deleteFromR2 } from '../config/r2.js';
+import { deleteFromImageKit } from '../config/imagekit.js';
 import { validateCar } from '../middleware/validate.js';
+
 import { cache, clearCache } from '../middleware/cache.js';
 import webpush from 'web-push';
 import { Subscription } from '../models/subscription.model.js';
@@ -189,8 +191,8 @@ router.post('/', protect, adminOnly, upload.array('images', 25), validateCar, as
     if (req.files && req.files.length > 0) {
       const uploadedImages = [];
       for (const file of req.files) {
-        // Sequentially pipe buffer to sharp, compress, and upload
-        const result = await uploadToImageKit(file.buffer, file.originalname);
+        // Sequentially pipe buffer to sharp, compress, and upload to Cloudflare R2
+        const result = await uploadToR2(file.buffer, file.originalname);
         uploadedImages.push({ url: result.secure_url, publicId: result.public_id });
       }
       carData.images = uploadedImages;
@@ -237,6 +239,20 @@ router.post('/', protect, adminOnly, upload.array('images', 25), validateCar, as
   }
 });
 
+// Helper for deleting media (R2 or legacy ImageKit)
+const deleteMediaSafe = async (publicId) => {
+  if (!publicId) return;
+  try {
+    if (publicId.startsWith('inventory/') || publicId.includes('.webp') || publicId.startsWith('car-')) {
+      await deleteFromR2(publicId);
+    } else {
+      await deleteFromImageKit(publicId);
+    }
+  } catch (e) {
+    console.error('Delete media error:', e.message);
+  }
+};
+
 // ── PUT /api/cars/:id — Update car (admin) ──
 router.put('/:id', protect, adminOnly, upload.array('images', 25), async (req, res) => {
   try {
@@ -270,7 +286,7 @@ router.put('/:id', protect, adminOnly, upload.array('images', 25), async (req, r
     if (req.files && req.files.length > 0) {
       const uploadedImages = [];
       for (const file of req.files) {
-        const result = await uploadToImageKit(file.buffer, file.originalname);
+        const result = await uploadToR2(file.buffer, file.originalname);
         uploadedImages.push({ url: result.secure_url, publicId: result.public_id });
       }
       updateData.images = [...(updateData.images || []), ...uploadedImages];
@@ -282,7 +298,7 @@ router.put('/:id', protect, adminOnly, upload.array('images', 25), async (req, r
         ? JSON.parse(updateData.deletedImages) : updateData.deletedImages;
       
       for (const publicId of deleted) {
-        if (publicId) await deleteFromImageKit(publicId);
+        if (publicId) await deleteMediaSafe(publicId);
       }
       delete updateData.deletedImages;
     }
@@ -308,7 +324,7 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
     if (car.images && car.images.length > 0) {
       for (const img of car.images) {
         if (img.publicId) {
-          await deleteFromImageKit(img.publicId);
+          await deleteMediaSafe(img.publicId);
         }
       }
     }
