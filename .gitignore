@@ -14,10 +14,11 @@ build/
 .env.local
 .env.*.local
 
-# Debug
+# Debug & Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
 
 # IDE
 .vscode/
@@ -37,3 +38,6 @@ frontend/public/car delivery/
 frontend/public/customer review/
 frontend/public/*.MOV
 frontend/public/*.MP4
+
+# Tool outputs
+graphify-out/

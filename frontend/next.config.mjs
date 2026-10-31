@@ -17,8 +17,6 @@ const withPWA = withPWAInit({
     '!**/*.{mp4,MP4,mov,MOV,webm,pdf,PDF}',
     '!car delivery/**/*',
     '!customer review/**/*',
-    '!151.png',
-    '!hero_chatgpt.png',
     '!IMG_5512.*',
     '!Video-*',
   ],

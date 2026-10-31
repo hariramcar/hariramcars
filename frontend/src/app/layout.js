@@ -149,6 +149,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} ${outfit.variable}`} suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://pub-a9d1044a70e94eda8754293b52dfe920.r2.dev" />
+        <link rel="dns-prefetch" href="https://pub-a9d1044a70e94eda8754293b52dfe920.r2.dev" />
+        <link rel="preconnect" href="https://haririamcars.onrender.com" />
+        <link rel="dns-prefetch" href="https://haririamcars.onrender.com" />
         <link rel="preconnect" href="https://res.cloudinary.com" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <script

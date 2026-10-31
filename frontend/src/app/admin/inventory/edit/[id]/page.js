@@ -456,7 +456,7 @@ export default function EditCarPage() {
           const uploadData = new FormData();
           uploadData.append('image', photo);
           
-          const uploadRes = await api.post('/upload/imagekit', uploadData, {
+          const uploadRes = await api.post('/upload/r2', uploadData, {
             headers: { 'Content-Type': 'multipart/form-data' }
           });
 

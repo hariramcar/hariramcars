@@ -405,7 +405,7 @@ export default function AddCar() {
       if (photos.length > 0) {
         toast.loading(`Uploading ${photos.length} photos...`, { id: 'upload-toast' });
         
-        // We now upload directly to the backend which handles sharp compression + ImageKit
+        // We now upload directly to the backend which handles sharp compression + Cloudflare R2
         for (let i = 0; i < photos.length; i++) {
           let photo = photos[i];
           toast.loading(`Uploading photo ${i + 1}/${photos.length}...`, { id: 'upload-toast' });
@@ -413,7 +413,7 @@ export default function AddCar() {
           const uploadData = new FormData();
           uploadData.append('image', photo);
           
-          const uploadRes = await api.post('/upload/imagekit', uploadData, {
+          const uploadRes = await api.post('/upload/r2', uploadData, {
             headers: { 'Content-Type': 'multipart/form-data' }
           });
 

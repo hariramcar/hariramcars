@@ -1,11 +1,17 @@
 import express from 'express';
-import { protect, adminOnly } from '../middleware/authMiddleware.js';
-import { upload } from '../config/imgbb.js';
 import axios from 'axios';
 import FormData from 'form-data';
 import heicConvert from 'heic-convert';
+import multer from 'multer';
+import { protect, adminOnly } from '../middleware/authMiddleware.js';
+import { upload } from '../config/imgbb.js';
+import { uploadToR2 } from '../config/r2.js';
 
 const router = express.Router();
+
+// Configure Multer for memory storage (for R2 direct uploads)
+const storage = multer.memoryStorage();
+const uploadMem = multer({ storage });
 
 router.get('/signature', protect, adminOnly, (req, res) => {
   try {
@@ -17,7 +23,7 @@ router.get('/signature', protect, adminOnly, (req, res) => {
   }
 });
 
-// New route for handling HEIC conversion on the backend for iPhones
+// Route for handling HEIC conversion on the backend for iPhones
 router.post('/heic-to-imgbb', protect, adminOnly, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
@@ -53,14 +59,7 @@ router.post('/heic-to-imgbb', protect, adminOnly, upload.single('image'), async 
   }
 });
 
-import multer from 'multer';
-import { uploadToR2 } from '../config/r2.js';
-
-// Configure Multer for memory storage
-const storage = multer.memoryStorage();
-const uploadMem = multer({ storage });
-
-// Route for Cloudflare R2 upload with Sharp compression (also handles /imagekit for backwards compatibility)
+// Handler for Cloudflare R2 upload with Sharp compression
 const handleR2Upload = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
@@ -78,8 +77,8 @@ const handleR2Upload = async (req, res) => {
   }
 };
 
-router.post('/imagekit', protect, adminOnly, uploadMem.single('image'), handleR2Upload);
+// Cloudflare R2 endpoints (supports /r2 and /imagekit for backwards compatibility)
 router.post('/r2', protect, adminOnly, uploadMem.single('image'), handleR2Upload);
+router.post('/imagekit', protect, adminOnly, uploadMem.single('image'), handleR2Upload);
 
 export default router;
-

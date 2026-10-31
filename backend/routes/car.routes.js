@@ -2,7 +2,6 @@ import express from 'express';
 import Car from '../models/Car.js';
 import { protect, adminOnly } from '../middleware/authMiddleware.js';
 import { upload, uploadToR2, deleteFromR2 } from '../config/r2.js';
-import { deleteFromImageKit } from '../config/imagekit.js';
 import { validateCar } from '../middleware/validate.js';
 
 import { cache, clearCache } from '../middleware/cache.js';
@@ -239,15 +238,11 @@ router.post('/', protect, adminOnly, upload.array('images', 25), validateCar, as
   }
 });
 
-// Helper for deleting media (R2 or legacy ImageKit)
+// Helper for deleting media (R2)
 const deleteMediaSafe = async (publicId) => {
   if (!publicId) return;
   try {
-    if (publicId.startsWith('inventory/') || publicId.includes('.webp') || publicId.startsWith('car-')) {
-      await deleteFromR2(publicId);
-    } else {
-      await deleteFromImageKit(publicId);
-    }
+    await deleteFromR2(publicId);
   } catch (e) {
     console.error('Delete media error:', e.message);
   }
