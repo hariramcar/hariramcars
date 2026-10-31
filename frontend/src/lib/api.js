@@ -29,18 +29,7 @@ api.interceptors.request.use(
       }
     }
 
-    // Force Vercel to bypass Next.js and hit the backend directly (only on live domains)
-    const isLiveDomain = typeof window !== 'undefined' && 
-      (window.location.hostname.includes('hariramcars.com') || window.location.hostname.includes('vercel.app'));
-
-    if (process.env.NODE_ENV === 'production' && config.url && isLiveDomain) {
-      // Remove leading slash if present
-      const cleanPath = config.url.startsWith('/') ? config.url.substring(1) : config.url;
-      // Split path and query parameters to prevent Vercel swallowing them
-      const [basePath, searchStr] = cleanPath.split('?');
-      config.baseURL = '';
-      config.url = `/backend/server.js?path=${basePath}${searchStr ? '&' + searchStr : ''}`;
-    } else if (config.url) {
+    if (config.url) {
       config.headers['X-Original-Path'] = config.url;
     }
 

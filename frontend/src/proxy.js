@@ -36,10 +36,7 @@ export async function proxy(request) {
     }
   }
 
-  // Block direct access to API from browser
-  if (pathname.startsWith('/api/')) {
-    return new NextResponse('Not Found', { status: 404 });
-  }
+
 
   return NextResponse.next();
 }
