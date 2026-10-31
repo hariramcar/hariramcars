@@ -21,8 +21,11 @@ export default function AdminLoginPage() {
     setLoading(true);
     try {
       const res = await api.post('/auth/login', { email, password });
+      if (res.data?.token) {
+        localStorage.setItem('admin_token', res.data.token);
+      }
       toast.success('Login successful!');
-      router.push('/admin/dashboard');
+      window.location.href = '/admin/dashboard';
     } catch (err) {
       let errorMsg = err.response?.data?.error;
       if (typeof errorMsg === 'object') errorMsg = errorMsg.message || 'Server crashed';

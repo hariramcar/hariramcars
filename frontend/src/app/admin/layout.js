@@ -44,7 +44,10 @@ export default function AdminLayout({ children }) {
     try {
       await api.post('/auth/logout');
     } catch { }
-    router.push('/admin/login');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('admin_token');
+    }
+    window.location.href = '/admin/login';
   };
 
   // Login page — no sidebar

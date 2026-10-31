@@ -21,6 +21,14 @@ const api = axios.create({
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
+    // Attach JWT bearer token if available
+    if (typeof window !== 'undefined') {
+      const storedToken = localStorage.getItem('admin_token');
+      if (storedToken && !config.headers.Authorization) {
+        config.headers.Authorization = `Bearer ${storedToken}`;
+      }
+    }
+
     // Force Vercel to bypass Next.js and hit the backend directly (only on live domains)
     const isLiveDomain = typeof window !== 'undefined' && 
       (window.location.hostname.includes('hariramcars.com') || window.location.hostname.includes('vercel.app'));
@@ -64,6 +72,7 @@ api.interceptors.response.use(
     // Handle specific error codes
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
+        localStorage.removeItem('admin_token');
         if (
           window.location.pathname.startsWith('/admin') &&
           window.location.pathname !== '/admin/login'

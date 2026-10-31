@@ -25,15 +25,26 @@ const upload = multer({
   },
 });
 
-// Setup ImageKit SDK
-const imagekit = new ImageKit({
-  publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
-  privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
-  urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
-});
+// Setup ImageKit SDK (safe initialization if credentials are provided)
+let imagekit = null;
+if (process.env.IMAGEKIT_PUBLIC_KEY && process.env.IMAGEKIT_PRIVATE_KEY && process.env.IMAGEKIT_URL_ENDPOINT) {
+  try {
+    imagekit = new ImageKit({
+      publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+      privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+      urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
+    });
+  } catch (err) {
+    console.warn('⚠️ ImageKit initialization warning:', err.message);
+  }
+}
 
 // Compress and Upload to ImageKit
 const uploadToImageKit = async (buffer, originalName) => {
+  if (!imagekit) {
+    throw new Error('ImageKit is not configured. Please set IMAGEKIT credentials or use R2.');
+  }
+
   try {
     // 1. Memory-Safe Compression via Sharp
     // Downscale massive images to max 1920px width/height and convert to WebP (80% quality)
@@ -70,7 +81,7 @@ const uploadToImageKit = async (buffer, originalName) => {
 
 // Delete from ImageKit
 const deleteFromImageKit = async (publicId) => {
-  if (!publicId) return true;
+  if (!publicId || !imagekit) return true;
   
   try {
     // Attempt deletion

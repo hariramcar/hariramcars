@@ -23,7 +23,7 @@ export async function proxy(request) {
 
     try {
       const secret = new TextEncoder().encode(
-        process.env.JWT_SECRET || 'your_super_secret_key_change_me_in_production'
+        process.env.JWT_SECRET || 'hariram-motors-jwt-secret-change-in-production-2024'
       );
       
       await jwtVerify(token, secret, {
