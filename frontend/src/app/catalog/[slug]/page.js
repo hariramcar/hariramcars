@@ -7,9 +7,7 @@ export async function generateMetadata({ params }) {
   const resolvedParams = await params;
   const { slug } = resolvedParams;
   let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-  if (process.env.NODE_ENV === 'production') {
-    baseUrl = 'https://www.hariramcars.com/backend/server.js?path=api';
-  }
+
 
   try {
     const res = await fetch(`${baseUrl}/cars/${slug}`, {
@@ -73,9 +71,7 @@ export async function generateMetadata({ params }) {
 
 async function getCarData(slug) {
   let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-  if (process.env.NODE_ENV === 'production') {
-    baseUrl = 'https://www.hariramcars.com/backend/server.js?path=api';
-  }
+
   try {
     const res = await fetch(`${baseUrl}/cars/${slug}`, { next: { revalidate: 15 } });
     if (!res.ok) return { car: null, similarCars: [] };

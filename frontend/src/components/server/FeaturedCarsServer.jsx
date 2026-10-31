@@ -5,9 +5,7 @@ import CarCard from '@/components/CarCard';
 
 async function getFeaturedCars() {
   let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-  if (process.env.NODE_ENV === 'production') {
-    baseUrl = 'https://www.hariramcars.com/backend/server.js?path=api';
-  }
+
 
   try {
     const res = await fetch(`${baseUrl}/cars?limit=8&status=available&featured=true`, {

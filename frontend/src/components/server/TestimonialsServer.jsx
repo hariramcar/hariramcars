@@ -3,9 +3,7 @@ import TestimonialsClient from '@/components/client/TestimonialsClient';
 
 async function getTestimonials() {
   let baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-  if (process.env.NODE_ENV === 'production') {
-    baseUrl = 'https://www.hariramcars.com/backend/server.js?path=api';
-  }
+
   
   try {
     const res = await fetch(`${baseUrl}/happy-customers?limit=6`, {
