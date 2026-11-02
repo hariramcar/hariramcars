@@ -1,6 +1,7 @@
 'use client';
+/* eslint-disable react-hooks/incompatible-library */
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
@@ -177,20 +178,21 @@ function ToggleSwitch({ label, description, checked, onChange }) {
 
 // Single File Preview Thumbnail with safe blob URL memory management
 function FileThumbnail({ file, isMain, index, onMoveLeft, onMakeMain, onMoveRight, onRemoveFile }) {
-  const [url, setUrl] = useState('');
+  const url = useMemo(() => {
+    if (!file) return '';
+    return URL.createObjectURL(file);
+  }, [file]);
 
   useEffect(() => {
-    if (!file) return;
-    const objUrl = URL.createObjectURL(file);
-    setUrl(objUrl);
     return () => {
-      URL.revokeObjectURL(objUrl);
+      if (url) URL.revokeObjectURL(url);
     };
-  }, [file]);
+  }, [url]);
 
   return (
     <div className="relative group bg-background rounded-xl overflow-hidden border border-gray-100 aspect-[4/3]">
       {url ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={url}
           alt={file.name}
@@ -541,7 +543,7 @@ export default function AddCar() {
       }
       return [...prev, ...validImages];
     });
-  };
+    };
   const removePhoto = (index) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
     if (mainPhoto === index) {

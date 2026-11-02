@@ -1,6 +1,7 @@
 'use client';
+/* eslint-disable react-hooks/incompatible-library */
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import {
@@ -179,20 +180,21 @@ function ToggleSwitch({ label, description, checked, onChange }) {
 
 // Single New File Preview Thumbnail with safe blob URL memory management
 function FileThumbnail({ file, isMain, index, onMovePhotoLeft, onMovePhotoRight, onRemoveFile }) {
-  const [url, setUrl] = useState('');
+  const url = useMemo(() => {
+    if (!file) return '';
+    return URL.createObjectURL(file);
+  }, [file]);
 
   useEffect(() => {
-    if (!file) return;
-    const objUrl = URL.createObjectURL(file);
-    setUrl(objUrl);
     return () => {
-      URL.revokeObjectURL(objUrl);
+      if (url) URL.revokeObjectURL(url);
     };
-  }, [file]);
+  }, [url]);
 
   return (
     <div className="relative group bg-background rounded-xl overflow-hidden border border-gray-100 aspect-[4/3]">
       {url ? (
+        // eslint-disable-next-line @next/next/no-img-element
         <img src={url} alt={file.name} className="w-full h-full object-cover" />
       ) : (
         <div className="w-full h-full flex items-center justify-center bg-white/5 text-xs text-text-muted">Loading...</div>
@@ -305,6 +307,7 @@ function DropZone({
             const isMain = index === 0;
             return (
               <div key={`existing-${index}`} className="relative group bg-background rounded-xl overflow-hidden border border-gray-100 aspect-[4/3]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={getOptimizedImage(img.url, 400)} alt="Existing" className="w-full h-full object-cover" />
                 {isMain ? (
                   <div className="absolute top-2 left-2 bg-accent text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm z-10">MAIN</div>
