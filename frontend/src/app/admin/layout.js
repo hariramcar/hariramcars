@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Car, MessageSquare, HandCoins, Image, Users, Settings, LogOut, Menu, X, ChevronRight, Tags } from 'lucide-react';
+import { LayoutDashboard, Car, MessageSquare, HandCoins, Image, Users, Settings, LogOut, Menu, X, Tags } from 'lucide-react';
 import api from '@/lib/api';
 
 const adminNav = [
@@ -25,18 +25,34 @@ export default function AdminLayout({ children }) {
   const router = useRouter();
 
   useEffect(() => {
+    // Skip verification on login page itself
+    if (pathname === '/admin/login') {
+      setLoading(false);
+      return;
+    }
+
     const verify = async () => {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+      if (!token) {
+        setLoading(false);
+        router.replace('/admin/login');
+        return;
+      }
+
       try {
         const res = await api.get('/auth/verify');
         setUser(res.data.user);
-      } catch {
-        if (pathname !== '/admin/login') {
-          router.push('/admin/login');
+      } catch (err) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('admin_token');
+          document.cookie = 'token=; path=/; max-age=0;';
         }
+        router.replace('/admin/login');
       } finally {
         setLoading(false);
       }
     };
+
     verify();
   }, [pathname, router]);
 
@@ -46,6 +62,7 @@ export default function AdminLayout({ children }) {
     } catch { }
     if (typeof window !== 'undefined') {
       localStorage.removeItem('admin_token');
+      document.cookie = 'token=; path=/; max-age=0;';
     }
     window.location.href = '/admin/login';
   };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Car, Eye, EyeOff, Lock, ArrowRight, ArrowLeft } from 'lucide-react';
@@ -15,6 +15,21 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // If already logged in with a valid token, auto-redirect directly to dashboard
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+    if (token) {
+      api.get('/auth/verify')
+        .then(() => {
+          router.replace('/admin/dashboard');
+        })
+        .catch(() => {
+          localStorage.removeItem('admin_token');
+          document.cookie = 'token=; path=/; max-age=0;';
+        });
+    }
+  }, [router]);
+
   const handleLogin = async (e) => {
     e.preventDefault();
     if (!email || !password) return toast.error('Please fill all fields');
@@ -23,12 +38,14 @@ export default function AdminLoginPage() {
       const res = await api.post('/auth/login', { email, password });
       if (res.data?.token) {
         localStorage.setItem('admin_token', res.data.token);
+        const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:';
+        document.cookie = `token=${res.data.token}; path=/; max-age=604800; SameSite=Lax${isSecure ? '; Secure' : ''}`;
       }
       toast.success('Login successful!');
-      window.location.href = '/admin/dashboard';
+      router.replace('/admin/dashboard');
     } catch (err) {
       let errorMsg = err.response?.data?.error;
-      if (typeof errorMsg === 'object') errorMsg = errorMsg.message || 'Server crashed';
+      if (typeof errorMsg === 'object') errorMsg = errorMsg.message || 'Server error';
       toast.error(errorMsg || 'Invalid credentials');
     } finally {
       setLoading(false);
