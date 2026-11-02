@@ -7,7 +7,7 @@ async function getTestimonials() {
   
   try {
     const res = await fetch(`${baseUrl}/happy-customers?limit=6`, {
-      cache: 'no-store'
+      next: { revalidate: 60 }
     });
     if (!res.ok) return [];
     const data = await res.json();

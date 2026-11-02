@@ -18,6 +18,7 @@ import {
 import { useForm, useFieldArray } from 'react-hook-form';
 
 import api from '@/lib/api';
+import { compressImage } from '@/lib/imageCompressor';
 
 // Reusable Select component
 function FormSelect({ label, options, placeholder, register, error }) {
@@ -174,6 +175,63 @@ function ToggleSwitch({ label, description, checked, onChange }) {
   );
 }
 
+// Single File Preview Thumbnail with safe blob URL memory management
+function FileThumbnail({ file, isMain, index, onMoveLeft, onMakeMain, onMoveRight, onRemoveFile }) {
+  const [url, setUrl] = useState('');
+
+  useEffect(() => {
+    if (!file) return;
+    const objUrl = URL.createObjectURL(file);
+    setUrl(objUrl);
+    return () => {
+      URL.revokeObjectURL(objUrl);
+    };
+  }, [file]);
+
+  return (
+    <div className="relative group bg-background rounded-xl overflow-hidden border border-gray-100 aspect-[4/3]">
+      {url ? (
+        <img
+          src={url}
+          alt={file.name}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-white/5 text-xs text-text-muted">Loading...</div>
+      )}
+      {isMain && (
+        <div className="absolute top-2 left-2 bg-accent text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm z-10">MAIN</div>
+      )}
+      <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm z-10">
+        {index + 1}
+      </div>
+      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+        <div className="flex items-center gap-1">
+          {onMoveLeft && index > 0 && (
+            <button type="button" onClick={(e) => { e.stopPropagation(); onMoveLeft(index); }} className="text-[10px] bg-gray-800/80 text-white px-2 py-1.5 rounded font-bold hover:bg-gray-700 shadow-sm">&larr;</button>
+          )}
+          {!isMain && onMakeMain && (
+            <button type="button" onClick={(e) => { e.stopPropagation(); onMakeMain(index); }} className="text-[10px] bg-white text-black px-3 py-1.5 rounded font-bold hover:bg-gray-200 shadow-sm uppercase tracking-wide">Make Main</button>
+          )}
+          {onMoveRight && (
+            <button type="button" onClick={(e) => { e.stopPropagation(); onMoveRight(index); }} className="text-[10px] bg-gray-800/80 text-white px-2 py-1.5 rounded font-bold hover:bg-gray-700 shadow-sm">&rarr;</button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onRemoveFile(index); }}
+          className="text-[10px] bg-red-500 text-white px-3 py-1.5 rounded font-bold hover:bg-red-600 shadow-sm uppercase tracking-wide"
+        >
+          Remove
+        </button>
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+        <p className="font-body text-[10px] text-white truncate text-center">{file.name}</p>
+      </div>
+    </div>
+  );
+}
+
 // Drag & Drop Zone component
 function DropZone({
   title,
@@ -225,6 +283,7 @@ function DropZone({
   const handleFileSelect = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       onFilesAdded([...e.target.files]);
+      e.target.value = ''; // Clean up so re-selecting photos triggers onChange
     }
   };
 
@@ -301,50 +360,18 @@ function DropZone({
       {/* File Preview Grid */}
       {files.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mt-3">
-          {files.map((file, index) => {
-            const isMain = mainPhoto === index;
-            return (
-              <div
-                key={index}
-                className="relative group bg-background rounded-xl overflow-hidden border border-gray-100 aspect-[4/3]"
-              >
-                <img
-                  src={URL.createObjectURL(file)}
-                  alt={file.name}
-                  className="w-full h-full object-cover"
-                />
-                {isMain && (
-                   <div className="absolute top-2 left-2 bg-accent text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm z-10">MAIN</div>
-                )}
-                <div className="absolute top-2 right-2 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm z-10">
-                  {index + 1}
-                </div>
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                  <div className="flex items-center gap-1">
-                    {onMoveLeft && index > 0 && (
-                      <button type="button" onClick={(e) => { e.stopPropagation(); onMoveLeft(index); }} className="text-[10px] bg-gray-800/80 text-white px-2 py-1.5 rounded font-bold hover:bg-gray-700 shadow-sm">&larr;</button>
-                    )}
-                    {!isMain && onMakeMain && (
-                       <button type="button" onClick={(e) => { e.stopPropagation(); onMakeMain(index); }} className="text-[10px] bg-white text-black px-3 py-1.5 rounded font-bold hover:bg-gray-200 shadow-sm uppercase tracking-wide">Make Main</button>
-                    )}
-                    {onMoveRight && index < files.length - 1 && (
-                      <button type="button" onClick={(e) => { e.stopPropagation(); onMoveRight(index); }} className="text-[10px] bg-gray-800/80 text-white px-2 py-1.5 rounded font-bold hover:bg-gray-700 shadow-sm">&rarr;</button>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onRemoveFile(index); }}
-                    className="text-[10px] bg-red-500 text-white px-3 py-1.5 rounded font-bold hover:bg-red-600 shadow-sm uppercase tracking-wide"
-                  >
-                    Remove
-                  </button>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                  <p className="font-body text-[10px] text-white truncate text-center">{file.name}</p>
-                </div>
-              </div>
-            );
-          })}
+          {files.map((file, index) => (
+            <FileThumbnail
+              key={`${file.name}-${file.size}-${index}`}
+              file={file}
+              index={index}
+              isMain={mainPhoto === index}
+              onMoveLeft={index > 0 ? () => onMoveLeft?.(index) : null}
+              onMakeMain={mainPhoto !== index ? () => onMakeMain?.(index) : null}
+              onMoveRight={index < files.length - 1 ? () => onMoveRight?.(index) : null}
+              onRemoveFile={() => onRemoveFile(index)}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -403,22 +430,23 @@ export default function AddCar() {
     try {
       let uploadedImages = [];
       if (photos.length > 0) {
-        toast.loading(`Uploading ${photos.length} photos...`, { id: 'upload-toast' });
+        toast.loading(`Preparing and uploading ${photos.length} photos...`, { id: 'upload-toast' });
         
-        // We now upload directly to the backend which handles sharp compression + Cloudflare R2
         for (let i = 0; i < photos.length; i++) {
-          let photo = photos[i];
+          const photo = photos[i];
           toast.loading(`Uploading photo ${i + 1}/${photos.length}...`, { id: 'upload-toast' });
 
+          const compressed = await compressImage(photo);
           const uploadData = new FormData();
-          uploadData.append('image', photo);
+          uploadData.append('image', compressed);
           
           const uploadRes = await api.post('/upload/r2', uploadData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 60000,
           });
 
-          if (!uploadRes.data.success) {
-            throw new Error(uploadRes.data.message || 'Upload failed');
+          if (!uploadRes.data?.success) {
+            throw new Error(uploadRes.data?.message || `Failed to upload photo ${i + 1}`);
           }
 
           uploadedImages.push({
@@ -430,6 +458,11 @@ export default function AddCar() {
       } else {
         toast.error('Please upload at least one image.');
         return; 
+      }
+
+      // Hard integrity check: ensure all photos were actually uploaded
+      if (uploadedImages.length !== photos.length) {
+        throw new Error(`Incomplete upload: only ${uploadedImages.length} of ${photos.length} photos uploaded. Vehicle publishing aborted.`);
       }
 
       const badges = [];
@@ -482,20 +515,32 @@ export default function AddCar() {
       router.push('/admin/inventory');
     } catch (error) {
       console.error('Failed to publish car:', error);
-      toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to publish vehicle');
+      toast.error(error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to publish vehicle');
     }
   };
 
   const addPhotos = (newFiles) => {
-    if (photos.length + newFiles.length > 25) {
-      toast.error('You can only upload a maximum of 25 photos');
-      const allowedCount = 25 - photos.length;
-      if (allowedCount > 0) {
-        setPhotos((prev) => [...prev, ...newFiles.slice(0, allowedCount)]);
-      }
+    const validImages = (newFiles || []).filter(file => {
+      return file.type?.startsWith('image/') || /\.(jpg|jpeg|png|webp|avif|heic|heif)$/i.test(file.name);
+    });
+
+    if (validImages.length === 0) {
+      toast.error('Please select valid image files');
       return;
     }
-    setPhotos((prev) => [...prev, ...newFiles]);
+
+    setPhotos((prev) => {
+      const remaining = 25 - prev.length;
+      if (remaining <= 0) {
+        toast.error('Maximum 25 photos limit reached');
+        return prev;
+      }
+      if (validImages.length > remaining) {
+        toast.error(`Maximum 25 photos allowed. Added ${remaining} of ${validImages.length} selected photos.`);
+        return [...prev, ...validImages.slice(0, remaining)];
+      }
+      return [...prev, ...validImages];
+    });
   };
   const removePhoto = (index) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
@@ -778,8 +823,8 @@ export default function AddCar() {
             {/* Standard Photos */}
             <DropZone
               id="standard-photos"
-              title="Exterior & Interior Photos"
-              description="Upload high-quality JPG or PNG images. Recommended: 1200×800px or higher."
+              title={`Exterior & Interior Photos (${photos.length}/25 selected)`}
+              description="Upload high-quality JPG, PNG or WebP images. Up to 25 photos supported. Recommended: 1200×800px or higher."
               icon={ImageIcon}
               files={photos}
               onFilesAdded={addPhotos}

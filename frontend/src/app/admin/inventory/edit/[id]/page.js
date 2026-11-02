@@ -19,6 +19,7 @@ import {
 import { useForm, useFieldArray } from 'react-hook-form';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { compressImage } from '@/lib/imageCompressor';
 import { getOptimizedImage } from '@/lib/utils';
 
 // Feature Manager Component for Key-Value pairs
@@ -176,6 +177,56 @@ function ToggleSwitch({ label, description, checked, onChange }) {
   );
 }
 
+// Single New File Preview Thumbnail with safe blob URL memory management
+function FileThumbnail({ file, isMain, index, onMovePhotoLeft, onMovePhotoRight, onRemoveFile }) {
+  const [url, setUrl] = useState('');
+
+  useEffect(() => {
+    if (!file) return;
+    const objUrl = URL.createObjectURL(file);
+    setUrl(objUrl);
+    return () => {
+      URL.revokeObjectURL(objUrl);
+    };
+  }, [file]);
+
+  return (
+    <div className="relative group bg-background rounded-xl overflow-hidden border border-gray-100 aspect-[4/3]">
+      {url ? (
+        <img src={url} alt={file.name} className="w-full h-full object-cover" />
+      ) : (
+        <div className="w-full h-full flex items-center justify-center bg-white/5 text-xs text-text-muted">Loading...</div>
+      )}
+      {isMain ? (
+        <div className="absolute top-2 left-2 bg-accent text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm z-10">MAIN</div>
+      ) : (
+        <div className="absolute top-2 left-2 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm z-10">NEW</div>
+      )}
+
+      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+        <div className="flex items-center gap-1">
+          {onMovePhotoLeft && (
+            <button type="button" onClick={(e) => { e.stopPropagation(); onMovePhotoLeft(); }} className="text-[10px] bg-gray-800/80 text-white px-2 py-1.5 rounded font-bold hover:bg-gray-700 shadow-sm">&larr;</button>
+          )}
+          {onMovePhotoRight && (
+            <button type="button" onClick={(e) => { e.stopPropagation(); onMovePhotoRight(); }} className="text-[10px] bg-gray-800/80 text-white px-2 py-1.5 rounded font-bold hover:bg-gray-700 shadow-sm">&rarr;</button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onRemoveFile(); }}
+          className="text-[10px] bg-red-500 text-white px-3 py-1.5 rounded font-bold hover:bg-red-600 shadow-sm uppercase tracking-wide"
+        >
+          Remove
+        </button>
+      </div>
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+        <p className="font-body text-[10px] text-white truncate text-center">{file.name}</p>
+      </div>
+    </div>
+  );
+}
+
 // Drag & Drop Zone component combining existing and new files
 function DropZone({
   title, description, icon: Icon, accept, id,
@@ -198,6 +249,7 @@ function DropZone({
   const handleFileSelect = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       onFilesAdded([...e.target.files]);
+      e.target.value = ''; // Clean up so re-selecting photos triggers onChange
     }
   };
 
@@ -285,35 +337,15 @@ function DropZone({
 
           {/* New Files */}
           {files.map((file, index) => (
-            <div key={`new-${index}`} className="relative group bg-background rounded-xl overflow-hidden border border-gray-100 aspect-[4/3]">
-              <img src={URL.createObjectURL(file)} alt={file.name} className="w-full h-full object-cover" />
-              {existingImages.length === 0 && index === 0 ? (
-                <div className="absolute top-2 left-2 bg-accent text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm z-10">MAIN</div>
-              ) : (
-                <div className="absolute top-2 left-2 bg-primary text-white text-[10px] font-bold px-2 py-1 rounded shadow-sm z-10">NEW</div>
-              )}
-
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
-                <div className="flex items-center gap-1">
-                  {onMovePhotoLeft && index > 0 && (
-                    <button type="button" onClick={(e) => { e.stopPropagation(); onMovePhotoLeft(index); }} className="text-[10px] bg-gray-800/80 text-white px-2 py-1.5 rounded font-bold hover:bg-gray-700 shadow-sm">&larr;</button>
-                  )}
-                  {onMovePhotoRight && index < files.length - 1 && (
-                    <button type="button" onClick={(e) => { e.stopPropagation(); onMovePhotoRight(index); }} className="text-[10px] bg-gray-800/80 text-white px-2 py-1.5 rounded font-bold hover:bg-gray-700 shadow-sm">&rarr;</button>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); onRemoveFile(index); }}
-                  className="text-[10px] bg-red-500 text-white px-3 py-1.5 rounded font-bold hover:bg-red-600 shadow-sm uppercase tracking-wide"
-                >
-                  Remove
-                </button>
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                <p className="font-body text-[10px] text-white truncate text-center">{file.name}</p>
-              </div>
-            </div>
+            <FileThumbnail
+              key={`${file.name}-${file.size}-${index}`}
+              file={file}
+              index={index}
+              isMain={existingImages.length === 0 && index === 0}
+              onMovePhotoLeft={index > 0 ? () => onMovePhotoLeft?.(index) : null}
+              onMovePhotoRight={index < files.length - 1 ? () => onMovePhotoRight?.(index) : null}
+              onRemoveFile={() => onRemoveFile(index)}
+            />
           ))}
 
         </div>
@@ -447,21 +479,23 @@ export default function EditCarPage() {
       let uploadedImages = [];
       let newPhotosToUpload = photos;
       if (newPhotosToUpload.length > 0) {
-        toast.loading(`Uploading ${newPhotosToUpload.length} new photos...`, { id: 'upload-toast' });
+        toast.loading(`Preparing and uploading ${newPhotosToUpload.length} new photos...`, { id: 'upload-toast' });
         
         for (let i = 0; i < newPhotosToUpload.length; i++) {
           let photo = newPhotosToUpload[i];
           toast.loading(`Uploading new photo ${i + 1}/${newPhotosToUpload.length}...`, { id: 'upload-toast' });
 
+          const compressed = await compressImage(photo);
           const uploadData = new FormData();
-          uploadData.append('image', photo);
+          uploadData.append('image', compressed);
           
           const uploadRes = await api.post('/upload/r2', uploadData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 60000,
           });
 
-          if (!uploadRes.data.success) {
-            throw new Error(uploadRes.data.message || 'Upload failed');
+          if (!uploadRes.data?.success) {
+            throw new Error(uploadRes.data?.message || `Failed to upload photo ${i + 1}`);
           }
 
           uploadedImages.push({
@@ -470,6 +504,11 @@ export default function EditCarPage() {
           });
         }
         toast.dismiss('upload-toast');
+      }
+
+      // Hard integrity check: ensure all photos were actually uploaded
+      if (uploadedImages.length !== newPhotosToUpload.length) {
+        throw new Error(`Incomplete upload: only ${uploadedImages.length} of ${newPhotosToUpload.length} new photos uploaded. Vehicle update aborted.`);
       }
 
       if (existingImages.length === 0 && uploadedImages.length === 0) {
@@ -517,15 +556,27 @@ export default function EditCarPage() {
   };
 
   const addPhotos = (newFiles) => {
-    if (existingImages.length + photos.length + newFiles.length > 25) {
-      toast.error('You can only upload a maximum of 25 photos in total');
-      const allowedCount = 25 - (existingImages.length + photos.length);
-      if (allowedCount > 0) {
-        setPhotos((prev) => [...prev, ...newFiles.slice(0, allowedCount)]);
-      }
+    const validImages = (newFiles || []).filter(file => {
+      return file.type?.startsWith('image/') || /\.(jpg|jpeg|png|webp|avif|heic|heif)$/i.test(file.name);
+    });
+
+    if (validImages.length === 0) {
+      toast.error('Please select valid image files');
       return;
     }
-    setPhotos((prev) => [...prev, ...newFiles]);
+
+    setPhotos((prev) => {
+      const remaining = 25 - (existingImages.length + prev.length);
+      if (remaining <= 0) {
+        toast.error('Maximum 25 photos limit reached');
+        return prev;
+      }
+      if (validImages.length > remaining) {
+        toast.error(`Maximum 25 photos allowed. Added ${remaining} of ${validImages.length} selected photos.`);
+        return [...prev, ...validImages.slice(0, remaining)];
+      }
+      return [...prev, ...validImages];
+    });
   };
   const removePhoto = (index) => setPhotos((prev) => prev.filter((_, i) => i !== index));
 
@@ -719,8 +770,8 @@ export default function EditCarPage() {
           <div className="space-y-8">
             <DropZone
               id="standard-photos"
-              title="Exterior & Interior Photos"
-              description="Upload high-quality JPG or PNG images. Recommended: 1200×800px or higher."
+              title={`Exterior & Interior Photos (${existingImages.length + photos.length}/25 total)`}
+              description="Upload high-quality JPG, PNG or WebP images. Up to 25 photos supported. Recommended: 1200×800px or higher."
               icon={ImageIcon}
               accept="image/*"
               existingImages={existingImages}

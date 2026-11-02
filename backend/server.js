@@ -197,7 +197,10 @@ if (process.env.NODE_ENV === 'production') {
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests. Try again later.' },
-    skip: (req) => req.method === 'GET' && req.path.startsWith('/api/cars'),
+    skip: (req) =>
+      (req.method === 'GET' && req.path.startsWith('/api/cars')) ||
+      req.path.startsWith('/api/upload') ||
+      req.path === '/api/health',
   });
 
   const authLimiter = rateLimit({

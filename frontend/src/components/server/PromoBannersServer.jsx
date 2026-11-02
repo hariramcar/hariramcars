@@ -7,7 +7,7 @@ async function getBanners() {
   
   try {
     const res = await fetch(`${baseUrl}/promo-banners?active=true`, {
-      next: { revalidate: 15 }
+      next: { revalidate: 60 }
     });
     if (!res.ok) return [];
     return await res.json();

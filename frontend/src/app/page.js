@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-export const dynamic = 'force-dynamic';
+export const revalidate = 60;
 import dynamicNext from 'next/dynamic';
 
 import HeroSection from '@/components/HeroSection';
