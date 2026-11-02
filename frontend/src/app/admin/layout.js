@@ -18,42 +18,49 @@ const adminNav = [
 ];
 
 export default function AdminLayout({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const isLoginPage = pathname === '/admin/login';
+
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(!isLoginPage);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    // Skip verification on login page itself
-    if (pathname === '/admin/login') {
-      setLoading(false);
-      return;
-    }
+    if (pathname === '/admin/login') return;
+
+    let isMounted = true;
 
     const verify = async () => {
       const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
       if (!token) {
-        setLoading(false);
         router.replace('/admin/login');
         return;
       }
 
       try {
         const res = await api.get('/auth/verify');
-        setUser(res.data.user);
-      } catch (err) {
+        if (isMounted) {
+          setUser(res.data.user);
+        }
+      } catch {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('admin_token');
           document.cookie = 'token=; path=/; max-age=0;';
         }
         router.replace('/admin/login');
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     verify();
+
+    return () => {
+      isMounted = false;
+    };
   }, [pathname, router]);
 
   const handleLogout = async () => {
@@ -68,7 +75,7 @@ export default function AdminLayout({ children }) {
   };
 
   // Login page — no sidebar
-  if (pathname === '/admin/login') {
+  if (isLoginPage) {
     return <>{children}</>;
   }
 
